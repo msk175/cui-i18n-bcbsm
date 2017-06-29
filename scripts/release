@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ $# -lt 2 ]
+  then
+    echo "Must pass both a new version and a commit message as arguments"
+    exit 1
+fi
+
+# Install dependencies
+npm install
+npm update
+
+# MVN versioning
+mvn versions:set -DnewVersion=$1
+mvn versions:commit
+
+# Generate assets
+java -jar target/cui-i18n-jlr-$1.jar -cp com.covisint.cui.i18n ListCountry
+grunt build --newVersion=$1
+source scripts/native2ascii $1
+
+# MVN deploy
+mvn clean package deploy -U
+mvn package
+
+# NPM Versioning
+npm version patch
+
+# Git push
+git add .
+git commit -m "$2"
+git push origin master --tags
